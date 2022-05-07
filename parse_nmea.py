@@ -32,7 +32,7 @@ def calculateHeading():
 			pass
 		#distance = math.sqrt(dx**2+dy**2)
 		distance = 0
-		print('Heading: ' + str(heading) + '\tDistance ' + str(distance) + '\tdx: ' + str(dx) + '\tdy: ' + str(dy))
+		#print('Heading: ' + str(heading) + '\tDistance ' + str(distance) + '\tdx: ' + str(dx) + '\tdy: ' + str(dy))
 
 #Calculate target heading based on current gps coordinates and desired gps coordinates 0 is North and increases to 360 clockwise
 def calculateTargetHeading():
@@ -42,8 +42,10 @@ def calculateTargetHeading():
 
 	#Convert to degrees
 	bearing = (target_heading*180/math.pi + 360) % 360
-	print('dx: ' + str(dx) + '\tdy: ' + str(dy))
-	print('Target Heading: ' + str(bearing))
+	#print('dx: ' + str(dx) + '\tdy: ' + str(dy))
+	#print('Target Heading: ' + str(bearing))
+
+	return bearing
 
 
 ser = serial.Serial(port='/dev/serial0',
@@ -52,6 +54,42 @@ ser = serial.Serial(port='/dev/serial0',
 			stopbits = serial.STOPBITS_ONE,
 			bytesize = serial.EIGHTBITS,
 			timeout = 1)
+
+
+def getTargetHeading():
+	x = ser.readline()
+	x = x.decode('ISO-8859-1')
+	if '$GNRMC' in x:
+		x = x.split(',')
+		lat_degrees = x[LAT_INDEX][0:2]
+		lat_minutes = x[LAT_INDEX][2:-1]
+		lat = float(lat_degrees) + float(lat_minutes)/60
+		if x[LAT_INDEX+1] == 'N':
+			pass
+		elif x[LAT_INDEX+1] == 'S':
+			lat *= -1
+
+		long_degrees = x[LONG_INDEX][0:3]
+		long_minutes = x[LONG_INDEX][3:-1]
+		long = float(long_degrees) + float(long_minutes)/60
+		if x[LONG_INDEX+1] == 'E':
+			pass
+		elif x[LONG_INDEX+1] == 'W':
+			long *= -1
+
+		last_lat = current_lat
+		last_long = current_long
+		current_long = long
+		current_lat = lat
+
+		print('Latitude, Longitude = ' + str(lat) + ', ' + str(long))
+		return calculateTargetHeading()
+	else:
+		print("No GPS data")
+
+def setTargetCoordinates(target_lat, target_long):
+	TARGET_LAT = target_lat
+	TARGET_LONG = target_long
 
 while 1:
 	x = ser.readline()
